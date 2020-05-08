@@ -2,3 +2,4 @@
 *m~
 *.swp
 local/*
+.DS_Store
