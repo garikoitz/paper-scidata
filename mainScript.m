@@ -1,4 +1,9 @@
 %% Download or clone the repository
+% Version history:
+% --- no version: original in Submission01 to SciData
+% --- v02: same file but with cl removed
+vv = "v02";
+% 
 %{
    cd ~/toolboxes 
     !git clone https://github.com/garikoitz/paper-scidata.git
@@ -26,30 +31,33 @@ t                = JL(JL.state==state & JL.gearName==gearName & ...
                       JL.gearVersion==gearVersion & JL.JobCreated>dateFrom & ...
                       contains(string(JL.label), labelContains),:);
 % Generate and save the dataset
-measurements     = {'fa','ad','cl','curvature','md','rd','torsion','volume'};
+measurements     = {'fa','ad','curvature','md','rd','torsion','volume'};
 dt               = dr_fwReadDtFromAnalysisTable(serverName, t, measurements);
-fname            = fullfile(stRootPath,'local','tmp', ...
-                      sprintf('AllV04_multiSiteAndMeas_%s.mat',collectionName));
+onlyfname        = sprintf('AllV04_multiSiteAndMeas_%s_%s.mat',collectionName, vv);
+fname            = fullfile(stRootPath,'local','tmp', onlyfname);
 save(fname, 'dt')
+
 % Upload the data to the server, as attachment to the collection that generated it
 st   = scitran('stanfordlabs'); st.verify;
 cc   = st.search('collection','collection label exact',collectionName);
 stts = st.fileUpload(fname,cc{1}.collection.id,'collection');
 
-%% Read the data locally for analyses
-paperPath  = '/Users/glerma/gDrive/STANFORD/PROJECTS/2019 RTP_Methods/ScientificData/';
+% Save the data in a local directory for records
+paperPath  = '/Users/glerma/gDrive/STANFORD/PROJECTS/2019_RTP_Methods/ScientificData/SUBMISSION01/REVISION01';
 saveItHere = string(fullfile(paperPath,'Figures','raw'));
 dataPath   = string(fullfile(paperPath,'DATA'));
 if ~exist(saveItHere); mkdir(saveItHere); end
 if ~exist(dataPath); mkdir(dataPath); end
+movefile(fname, fullfile(dataPath, onlyfname));
 
+%% Read the data locally for analyses
 % Read the data 
 % (check if there is a local cache, otherwise download it from FW
 DataVersion    = '04';
 collectionName = 'ComputationalReproducibility';
 measure        = 'multiSiteAndMeas';
-fname          = sprintf('AllV%s_%s_%s.mat',DataVersion, measure, collectionName);
-localfname     = fullfile(rootPath,'local',fname);
+fname          = sprintf('AllV%s_%s_%s_%s.mat',DataVersion, measure, collectionName, vv);
+localfname     = fullfile(dataPath,fname);
 if exist(localfname,'file')
     data       = load(localfname);
 else  % Download it from the Flywheel collection attachment
@@ -108,6 +116,7 @@ legend({'mean Left','mean Right'})
 % AS MAT
 % Time stamp: 
 timeStamp  = string(datetime('now','Format','yyyy-MM-dd''T''HH-mm'));
+
 ext        = '.mat';
 fname      = sprintf('AllV04_multiSiteAndMeas_ComputationalReproducibility_%s%s',timeStamp,ext);
 fpname     = fullfile(dataPath, fname);
@@ -118,14 +127,13 @@ save(fpname,'DT')
 % Select filename to be saved
 ext        = '.json';
 fname      = sprintf('AllV04_multiSiteAndMeas_ComputationalReproducibility_%s%s',timeStamp,ext);
-fpname     = fullfile(dataPath, fname);
+fpname     = char(fullfile(dataPath, fname));
 % Encode json
 jsonString = jsonencode(DT);
 % Format a little bit
-jsonString = strrep(jsonString, ',', sprintf(',\n'));
-jsonString = strrep(jsonString, '[{', sprintf('[\n{\n'));
-jsonString = strrep(jsonString, '}]', sprintf('\n}\n]'));
+% jsonString = strrep(jsonString, ',', sprintf(',\n'));
+% jsonString = strrep(jsonString, '[{', sprintf('[\n{\n'));
+% jsonString = strrep(jsonString, '}]', sprintf('\n}\n]'));
 % Write it
-fid = fopen(fpname,'w');if fid == -1,error('Cannot create JSON file');end
+fid = fopen(fpname,'w+');if fid == -1,error('Cannot create JSON file');end
 fwrite(fid, jsonString,'char');fclose(fid);
-
